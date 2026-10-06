@@ -66,7 +66,7 @@ export default function RegisterPage() {
         username: form.email,
         password: form.password,
       }) as any;
-      const session = loginRes.data;
+      const session = loginRes.data?.data ?? loginRes.data;
       setAuth(session.accessToken, session.refreshToken, session.user);
       message.success('Organization created! Welcome to OmniCore Africa.');
       navigate('/dashboard');

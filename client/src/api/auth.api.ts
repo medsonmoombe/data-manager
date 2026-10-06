@@ -38,15 +38,12 @@ export const authApi = {
    */
   login: async (username: string, password: string) => {
     const res = await api.post('/auth/api/login', { username, password }) as any;
-    return res.data as LoginSuccessResponse;
+    return (res.data?.data ?? res.data) as LoginSuccessResponse;
   },
 
-  /**
-   * Exchange a refresh token for a new access token (the refresh token rotates).
-   */
   refresh: async (refreshToken: string) => {
     const res = await api.post('/auth/api/refresh', { refreshToken }) as any;
-    return res.data as LoginSuccessResponse;
+    return (res.data?.data ?? res.data) as LoginSuccessResponse;
   },
 
   /**
