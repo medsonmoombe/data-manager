@@ -7,9 +7,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { UserSyncInterceptor } from './common/interceptors/user-sync.interceptor';
-import { UserManagementService } from './modules/user/user-management.service';
-import { OrgInterceptor } from './common/interceptors/org.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { ApiKeyUsageInterceptor } from './common/interceptors/api-key-usage.interceptor';
@@ -32,10 +29,14 @@ async function bootstrap() {
   // Global pipes, filters, interceptors
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   app.useGlobalFilters(new AllExceptionsFilter());
-  const userManagementService = app.get(UserManagementService);
   const prismaService = app.get(PrismaService);
-  app.useGlobalInterceptors(new LoggingInterceptor(), new UserSyncInterceptor(userManagementService, prismaService),new OrgInterceptor(prismaService),  new ApiKeyUsageInterceptor(prismaService),  // Need to inject
-  new ResponseInterceptor(),);
+  // Keycloak-era global interceptors (UserSyncInterceptor / OrgInterceptor) are gone:
+  // JwtAuthGuard now resolves the user and their org on every authenticated request.
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new ApiKeyUsageInterceptor(prismaService),
+    new ResponseInterceptor(),
+  );
 
   // Prefix
   app.setGlobalPrefix('api/v1');

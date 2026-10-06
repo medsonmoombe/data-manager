@@ -11,13 +11,20 @@ export class TeamService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private async resolveUserId(keycloakUserId: string): Promise<string | undefined> {
-    const user = await this.prisma.user.findUnique({ where: { keycloakUserId } });
-    return user?.id || keycloakUserId;
+  /**
+   * `user.sub` is already the local User.id, so this only has to confirm the
+   * user exists. (It used to translate a Keycloak id into a local one.)
+   */
+  private async resolveUserId(userId: string): Promise<string | undefined> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    return user?.id;
   }
 
-  async findAll(orgId: string, keycloakUserId?: string) {
-    const internalUserId = keycloakUserId ? await this.resolveUserId(keycloakUserId) : undefined;
+  async findAll(orgId: string, userId?: string) {
+    const internalUserId = userId ? await this.resolveUserId(userId) : undefined;
     const teams = await this.prisma.team.findMany({
       where: { organizationId: orgId },
       include: {
@@ -91,9 +98,11 @@ export class TeamService {
     };
   }
 
-  async create(orgId: string, keycloakUserId: string, data: { name: string; description?: string }) {
-    const user = await this.prisma.user.findUnique({ where: { keycloakUserId } });
-    const internalUserId = user?.id || keycloakUserId;
+  async create(orgId: string, userId: string, data: { name: string; description?: string }) {
+    const internalUserId = await this.resolveUserId(userId);
+    if (!internalUserId) {
+      throw new NotFoundException('User not found');
+    }
 
     const team = await this.prisma.team.create({
       data: { organizationId: orgId, name: data.name, description: data.description, createdBy: internalUserId },
@@ -155,8 +164,8 @@ export class TeamService {
     return member;
   }
 
-  async getUserTeams(orgId: string, keycloakUserId: string) {
-    const internalUserId = await this.resolveUserId(keycloakUserId);
+  async getUserTeams(orgId: string, userId: string) {
+    const internalUserId = await this.resolveUserId(userId);
     const memberships = await this.prisma.teamMember.findMany({
       where: { userId: internalUserId },
       include: { team: true },

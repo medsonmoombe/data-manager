@@ -9,44 +9,6 @@ export class UserManagementService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Sync user from Keycloak on first login.
-   */
-  async syncUserFromKeycloak(keycloakUser: any, orgId: string) {
-    const existing = await this.prisma.user.findUnique({
-      where: { keycloakUserId: keycloakUser.sub },
-    });
-
-    if (existing) {
-      // Update last login
-      await this.prisma.user.update({
-        where: { id: existing.id },
-        data: { lastLoginAt: new Date() },
-      });
-      return existing;
-    }
-
-    // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        organizationId: orgId,
-        keycloakUserId: keycloakUser.sub,
-        username: keycloakUser.preferred_username || keycloakUser.email,
-        email: keycloakUser.email || '',
-        firstName: keycloakUser.given_name || '',
-        lastName: keycloakUser.family_name || '',
-        isActive: true,
-        lastLoginAt: new Date(),
-      },
-    });
-
-    // Assign default 'viewer' role
-    await this.assignDefaultRole(user.id, orgId);
-
-    this.logger.log(`User synced from Keycloak: ${user.email}`);
-    return user;
-  }
-
-  /**
    * Assign the default role to a new user.
    */
   private async assignDefaultRole(userId: string, orgId: string) {

@@ -1,5 +1,5 @@
 import { Controller, Post, Param, Body, Req, Headers, BadRequestException, Logger } from '@nestjs/common';
-import { Public } from 'nest-keycloak-connect';
+import { Public } from '../../common/decorators/public.decorator';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import * as crypto from 'crypto';
 

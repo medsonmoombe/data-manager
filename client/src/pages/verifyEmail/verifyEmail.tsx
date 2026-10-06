@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Spin, message } from 'antd';
 import { FiCheckCircle, FiAlertCircle, FiArrowRight, FiMail } from 'react-icons/fi';
-import api from '../../api/axios';
+import { authApi } from '../../api/auth.api';
 
 /**
  * Email Verification Page
@@ -31,16 +31,14 @@ export default function VerifyEmailPage() {
     }
 
     try {
-      // Call Keycloak to verify the email
-      // This is handled by Keycloak's verify-email endpoint
-      // The user will be redirected here after Keycloak processes it
-      
-      // For now, show success
+      await authApi.verifyEmail(token);
       setState('success');
       message.success('Email verified successfully!');
     } catch (err: any) {
       setState('error');
-      setErrorMsg(err?.message || 'Failed to verify email. The link may have expired.');
+      setErrorMsg(
+        err?.response?.data?.message || err?.message || 'Failed to verify email. The link may have expired.',
+      );
     }
   };
 

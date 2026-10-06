@@ -77,9 +77,17 @@ model Department {
 model User {
   id             String    @id @default(uuid())
   organizationId String    @map("org_id")
-  keycloakUserId String    @unique @map("keycloak_user_id")
+  // Legacy Keycloak identifier. Retained only for migration mapping and safe to drop
+  // once no deployment still references it. `id` is the identity for everything now.
+  keycloakUserId String?   @unique @map("keycloak_user_id")
   username       String?   @unique
   email          String
+  // Custom auth: bcrypt hash of the user's password. NULL means "no password set yet"
+  // (migrated users, invitations) and forces the set-password flow on login.
+  passwordHash   String?   @map("password_hash")
+  emailVerified  Boolean   @default(false) @map("email_verified")
+  // Actions the user must complete before using the app, e.g. ['UPDATE_PASSWORD']
+  requiredActions String[] @default([]) @map("required_actions")
   firstName      String?   @map("first_name")
   lastName       String?   @map("last_name")
   jobTitle       String?   @map("job_title")

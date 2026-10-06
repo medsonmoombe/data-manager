@@ -1,38 +1,21 @@
 import api from './axios';
 
-export interface LoginResponse {
-  requires2FA: true;
-  sessionId: string;
+export interface SessionUser {
+  sub: string;
   email: string;
+  given_name?: string;
+  family_name?: string;
+  preferred_username?: string;
+  orgId?: string;
+  orgName?: string | null;
+  realm_access?: { roles: string[] };
+  required_actions?: string[];
 }
 
 export interface LoginSuccessResponse {
-  requires2FA: false;
   accessToken: string;
   refreshToken: string;
-  user: {
-    sub: string;
-    email: string;
-    given_name?: string;
-    family_name?: string;
-    preferred_username?: string;
-    realm_access?: { roles: string[] };
-    required_actions?: string[];
-  };
-}
-
-export interface TwoFactorResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    sub: string;
-    email: string;
-    given_name?: string;
-    family_name?: string;
-    preferred_username?: string;
-    realm_access?: { roles: string[] };
-    required_actions?: string[];
-  };
+  user: SessionUser;
 }
 
 export interface UserProfile {
@@ -45,39 +28,37 @@ export interface UserProfile {
   enabled: boolean;
   requiredActions: string[];
   orgId: string;
-  orgName: string;
-  otpEnabled: boolean;
-  lastLogin: number;
+  orgName: string | null;
+  lastLogin: string | null;
 }
 
 export const authApi = {
   /**
-   * Login with username/password.
-   * Returns tokens directly or requires 2FA.
+   * Sign in. Credentials in, tokens out — there is no 2FA/OTP step.
    */
   login: async (username: string, password: string) => {
     const res = await api.post('/auth/api/login', { username, password }) as any;
-    return res.data as LoginResponse | LoginSuccessResponse;
+    return res.data as LoginSuccessResponse;
   },
 
   /**
-   * Verify 2FA code and complete login.
+   * Exchange a refresh token for a new access token (the refresh token rotates).
    */
-  verify2FA: async (sessionId: string, code: string) => {
-    const res = await api.post('/auth/api/2fa/verify', { sessionId, code }) as any;
-    return res.data as TwoFactorResponse;
+  refresh: async (refreshToken: string) => {
+    const res = await api.post('/auth/api/refresh', { refreshToken }) as any;
+    return res.data as LoginSuccessResponse;
   },
 
   /**
-   * Resend 2FA OTP code.
+   * Revoke the current refresh token.
    */
-  resend2FA: async (sessionId: string, email: string) => {
-    const res = await api.post('/auth/api/2fa/resend', { sessionId, email }) as any;
+  logout: async (refreshToken?: string) => {
+    const res = await api.post('/auth/api/logout', { refreshToken }) as any;
     return res.data as { success: boolean; message: string };
   },
 
   /**
-   * Request password reset email.
+   * Request a password reset email.
    */
   forgotPassword: async (email: string) => {
     const res = await api.post('/auth/api/forgot-password', { email }) as any;
@@ -85,7 +66,7 @@ export const authApi = {
   },
 
   /**
-   * Complete password reset with token.
+   * Complete a password reset with a token.
    */
   resetPassword: async (token: string, newPassword: string, confirmPassword: string) => {
     const res = await api.post('/auth/api/reset-password', { token, newPassword, confirmPassword }) as any;
@@ -93,7 +74,23 @@ export const authApi = {
   },
 
   /**
-   * Change password for authenticated user.
+   * Verify an email address with the token from the verification email.
+   */
+  verifyEmail: async (token: string) => {
+    const res = await api.post('/auth/api/verify-email', { token }) as any;
+    return res.data as { success: boolean; message: string };
+  },
+
+  /**
+   * Re-send the verification email for the signed-in user.
+   */
+  resendVerification: async () => {
+    const res = await api.post('/auth/api/resend-verification', {}) as any;
+    return res.data as { success: boolean; message: string };
+  },
+
+  /**
+   * Change the password of the signed-in user.
    */
   changePassword: async (currentPassword: string, newPassword: string, confirmPassword: string, forceChange = false) => {
     const res = await api.post('/auth/api/change-password', { currentPassword, newPassword, confirmPassword, forceChange }) as any;
@@ -101,19 +98,11 @@ export const authApi = {
   },
 
   /**
-   * Get current user profile with required actions.
+   * Get the current user profile with pending required actions.
    */
   getMe: async () => {
     const res = await api.get('/auth/api/me') as any;
     return res.data as UserProfile;
-  },
-
-  /**
-   * Enable or disable 2FA.
-   */
-  toggle2FA: async (enabled: boolean) => {
-    const res = await api.post('/auth/api/2fa/toggle', { enabled }) as any;
-    return res.data as { success: boolean; message: string };
   },
 
   /**

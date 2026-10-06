@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -44,6 +45,10 @@ const CONNECTOR_TYPES = ['csv', 'rest_api'];
 async function main() {
   console.log('\n=== OMNICORE AFRICA — MASSIVE RAW DATA SEED ===');
   console.log('   (Only inserting raw data — system handles detection, linking, suggestions, etc.)\n');
+
+  // Custom auth: seeded accounts sign in with this password (bcrypt-hashed).
+  const seedPassword = process.env.DEFAULT_USER_PASSWORD || 'Password123!';
+  const seedPasswordHash = await bcrypt.hash(seedPassword, 12);
 
   // ===================================================================
   // CLEANUP — remove old data for this org so seed is re-runnable
@@ -193,7 +198,7 @@ async function main() {
       prisma.user.create({
         data: {
           email: u.email,
-          keycloakUserId: `kc-user-${String(i + 1).padStart(3, '0')}`,
+          passwordHash: seedPasswordHash,
           username: u.email.split('@')[0],
           firstName: u.first,
           lastName: u.last,

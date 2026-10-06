@@ -594,7 +594,7 @@ export default function SettingsPage() {
                     <Descriptions.Item label="Organization">{orgName || user?.orgName || '-'}</Descriptions.Item>
                     <Descriptions.Item label="User">{user?.email || '-'}</Descriptions.Item>
                     <Descriptions.Item label="Platform">NestJS + React + Postgres</Descriptions.Item>
-                    <Descriptions.Item label="Auth Provider">Keycloak (OAuth2/OIDC)</Descriptions.Item>
+                    <Descriptions.Item label="Auth Provider">Native (JWT)</Descriptions.Item>
                   </Descriptions>
                   <Divider className="!my-3" />
                   <div className="p-3 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0]">
@@ -618,7 +618,7 @@ export default function SettingsPage() {
                     {[
                       { icon: <LockOutlined />, label: 'Encryption at Rest', desc: 'AES-256 encryption for all stored data' },
                       { icon: <LinkOutlined />, label: 'Encryption in Transit', desc: 'TLS 1.3 for all API communications' },
-                      { icon: <KeyOutlined />, label: 'Authentication', desc: 'OAuth2/OIDC via Keycloak with MFA support' },
+                      { icon: <KeyOutlined />, label: 'Authentication', desc: 'Native JWT auth with bcrypt password hashing' },
                       { icon: <SafetyOutlined />, label: 'IP Whitelisting', desc: 'Restrict access by IP address or CIDR range' },
                       { icon: <UserOutlined />, label: 'Role-Based Access', desc: 'Granular permissions with custom roles' },
                       { icon: <CheckCircleOutlined />, label: 'Audit Trail', desc: 'Complete activity logging for compliance' },

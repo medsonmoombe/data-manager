@@ -1,5 +1,5 @@
 import { Controller, Get, Req } from '@nestjs/common';
-import { Public } from 'nest-keycloak-connect';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('health')
 export class HealthController {

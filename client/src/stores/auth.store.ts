@@ -23,6 +23,7 @@ interface AuthState {
   isAuthenticated: boolean;
   
   setAuth: (token: string, refreshToken: string, user: User) => void;
+  setTokens: (token: string, refreshToken: string) => void;
   setOrgId: (orgId: string) => void;
   setOrgName: (orgName: string) => void;
   updateUser: (user: Partial<User>) => void;
@@ -48,6 +49,9 @@ export const useAuthStore = create<AuthState>()(
           orgId: user.orgId || null,
           orgName: user.orgName || null,
         }),
+
+      // Used by the axios refresh interceptor to rotate tokens in place.
+      setTokens: (token, refreshToken) => set({ token, refreshToken }),
 
       setOrgId: (orgId) => set({ orgId }),
       setOrgName: (orgName) => set({ orgName }),

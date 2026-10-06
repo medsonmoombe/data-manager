@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Req, Res, NotFoundException, Header } from '@nestjs/common';
-import { Public } from 'nest-keycloak-connect';
+import { Public } from '../../common/decorators/public.decorator';
 import { MinioService } from '../../infrastructure/minio/minio.service';
 import { Response } from 'express';
 

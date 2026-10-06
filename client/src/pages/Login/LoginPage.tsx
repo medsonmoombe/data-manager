@@ -41,13 +41,7 @@ export default function LoginPage() {
     try {
       const response = await authApi.login(username.trim(), password) as any;
 
-      // Check if 2FA is required
-      if (response.requires2FA) {
-        navigate(`/2fa?sessionId=${response.sessionId}&email=${encodeURIComponent(response.email)}`);
-        return;
-      }
-
-      // Login successful — store tokens and user
+      // Direct login — tokens come straight back, no OTP step.
       setAuth(response.accessToken, response.refreshToken, response.user);
       message.success(`Welcome back, ${response.user?.given_name || response.user?.preferred_username || 'User'}`);
 
@@ -73,7 +67,7 @@ export default function LoginPage() {
     { Icon: FiBarChart2, text: 'Real-time dashboards, KPIs & narrative report generation' },
     { Icon: FiSearch, text: 'AI-powered anomaly detection & fraud prevention' },
     { Icon: FiMessageCircle, text: 'WhatsApp chatbot for field data collection & verification' },
-    { Icon: FiShield, text: 'Enterprise-grade security — SOC 2, POPIA, TLS 1.3, MFA' },
+    { Icon: FiShield, text: 'Enterprise-grade security — SOC 2, POPIA, TLS 1.3' },
   ];
 
   return (
@@ -221,7 +215,7 @@ export default function LoginPage() {
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-semibold text-[#007A2E] uppercase tracking-wide" style={{ background: 'rgba(0,155,58,0.06)', border: '1px solid rgba(0,155,58,0.12)' }}>
               <FiShield className="text-[9px]" /> Secure Authentication
             </div>
-            <p className="text-[9px] text-[#99A1B3] mt-2 leading-relaxed">TLS 1.3 &nbsp;•&nbsp; MFA Ready &nbsp;•&nbsp; SOC 2 Type II &nbsp;•&nbsp; POPIA Compliant</p>
+            <p className="text-[9px] text-[#99A1B3] mt-2 leading-relaxed">TLS 1.3 &nbsp;•&nbsp; SOC 2 Type II &nbsp;•&nbsp; POPIA Compliant</p>
           </div>
         </div>
       </div>

@@ -1,17 +1,21 @@
 import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
-import { AuthGuard } from 'nest-keycloak-connect';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { JwtAuthGuard } from '../../infrastructure/jwt/jwt-auth.guard';
 import * as crypto from 'crypto';
 
+/**
+ * Accepts either a user Bearer token or an `x-api-key`.
+ *
+ * The Keycloak delegation is gone: user requests now go through our own
+ * `JwtAuthGuard`. The API-key path is unchanged.
+ */
 @Injectable()
 export class CompositeAuthGuard implements CanActivate {
   private readonly logger = new Logger(CompositeAuthGuard.name);
-  private authGuard: AuthGuard;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly moduleRef: ModuleRef,
+    private readonly jwtAuthGuard: JwtAuthGuard,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -22,11 +26,7 @@ export class CompositeAuthGuard implements CanActivate {
       return this.authenticateWithApiKey(request, String(apiKey));
     }
 
-    if (!this.authGuard) {
-      this.authGuard = this.moduleRef.get(AuthGuard, { strict: false });
-    }
-
-    return this.authGuard.canActivate(context) as Promise<boolean>;
+    return this.jwtAuthGuard.canActivate(context);
   }
 
   private async authenticateWithApiKey(request: any, apiKey: string): Promise<boolean> {

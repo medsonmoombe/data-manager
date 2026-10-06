@@ -149,10 +149,10 @@ export class WorkflowController {
       },
     };
 
-    // Look up the user's Prisma roles (source of truth — not Keycloak JWT)
+    // `userId` is the local User.id (tokens are issued by us).
     const dbUser = userId
       ? await this.prisma.user.findUnique({
-          where: { keycloakUserId: userId },
+          where: { id: userId },
           include: { userRoles: { include: { role: { select: { name: true } } } } },
         })
       : null;

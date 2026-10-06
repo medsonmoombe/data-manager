@@ -4,7 +4,6 @@ import AppLayout from './components/Layout/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/Login/LoginPage';
 import OrgSelectPage from './pages/OrgSelect/OrgSelectPage';
-import TwoFactorPage from './pages/TwoFactor/TwoFactorPage';
 import ForgotPasswordPage from './pages/ForgotPassword/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPassword/ResetPasswordPage';
 import ChangePasswordPage from './pages/ChangePassword/ChangePasswordPage';
@@ -48,7 +47,6 @@ export default function App() {
             <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
             <Route path="/org-select" element={<OrgSelectPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/2fa" element={<TwoFactorPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />

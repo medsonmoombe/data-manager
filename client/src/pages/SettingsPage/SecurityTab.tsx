@@ -1,22 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Switch, Typography, message, Spin, Descriptions, Tag } from 'antd';
-import { SafetyOutlined, MailOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { authApi } from '../../api/auth.api';
+import { useState, useEffect } from 'react';
+import { Card, Typography, Spin, Descriptions, Tag, Button } from 'antd';
+import { SafetyOutlined, CheckCircleOutlined, CloseCircleOutlined, MailOutlined } from '@ant-design/icons';
+import { message } from 'antd';
+import { authApi, type UserProfile } from '../../api/auth.api';
 import { useAuthStore } from '../../stores/auth.store';
+import { useNavigate } from 'react-router-dom';
 
 const { Text } = Typography;
 
 /**
  * Security Tab
  *
- * Allows users to enable/disable two-factor authentication (email OTP).
- * Shows current 2FA status and provides a toggle to change it.
+ * Account security overview. Two-factor authentication is no longer offered:
+ * sign-in is email/password only, and emailed one-time links are used solely
+ * for password resets and email verification.
  */
 export default function SecurityTab() {
   const [loading, setLoading] = useState(true);
-  const [toggling, setToggling] = useState(false);
-  const [otpEnabled, setOtpEnabled] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+
   useEffect(() => {
     loadSecurityStatus();
   }, []);
@@ -24,9 +29,7 @@ export default function SecurityTab() {
   const loadSecurityStatus = async () => {
     setLoading(true);
     try {
-      const profile = await authApi.getMe();
-      console.log("PROFILE ::", profile)
-      setOtpEnabled(profile.otpEnabled);
+      setProfile(await authApi.getMe());
     } catch (err: any) {
       console.error('Failed to load security status:', err);
     } finally {
@@ -34,17 +37,15 @@ export default function SecurityTab() {
     }
   };
 
-  const handleToggle2FA = async (checked: boolean) => {
-    setToggling(true);
+  const handleResendVerification = async () => {
+    setSending(true);
     try {
-      const result = await authApi.toggle2FA(checked);
-      setOtpEnabled(checked);
-      message.success(result.message || (checked ? 'Two-factor authentication enabled.' : 'Two-factor authentication disabled.'));
+      const result = await authApi.resendVerification();
+      message.success(result.message || 'Verification email sent.');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err.message || 'Failed to update 2FA settings.';
-      message.error(msg);
+      message.error(err?.response?.data?.message || 'Failed to send verification email.');
     } finally {
-      setToggling(false);
+      setSending(false);
     }
   };
 
@@ -57,9 +58,40 @@ export default function SecurityTab() {
     );
   }
 
+  const emailVerified = profile?.emailVerified ?? false;
+
   return (
     <div className="flex flex-col gap-4 max-w-[600px]">
-      {/* 2FA Section */}
+      {/* Authentication */}
+      <Card
+        size="small"
+        bodyStyle={{ padding: 20 }}
+        style={{ borderRadius: 10, border: '1px solid #E5E7EB' }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[rgba(0,155,58,0.08)] flex items-center justify-center flex-shrink-0">
+            <SafetyOutlined className="text-[#009B3A] text-lg" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-[13px] font-bold m-0 text-[#1A1F2E]">Sign-in &amp; password</h4>
+            <Text className="text-[11px] text-[#99A1B3]">
+              Your account is protected by an email and password sign-in.
+            </Text>
+
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                size="small"
+                onClick={() => navigate('/change-password')}
+                className="!text-[11px]"
+              >
+                Change password
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Email verification */}
       <Card
         size="small"
         bodyStyle={{ padding: 20 }}
@@ -68,59 +100,25 @@ export default function SecurityTab() {
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-[rgba(0,155,58,0.08)] flex items-center justify-center flex-shrink-0">
-              <SafetyOutlined className="text-[#009B3A] text-lg" />
+              <MailOutlined className="text-[#009B3A] text-lg" />
             </div>
             <div>
-              <h4 className="text-[13px] font-bold m-0 text-[#1A1F2E]">Two-Factor Authentication</h4>
+              <h4 className="text-[13px] font-bold m-0 text-[#1A1F2E]">Email verification</h4>
               <Text className="text-[11px] text-[#99A1B3]">
-                Add an extra layer of security to your account
+                {emailVerified
+                  ? 'Your email address has been verified.'
+                  : 'Please verify your email address.'}
               </Text>
             </div>
           </div>
-          <Switch
-            checked={otpEnabled}
-            onChange={handleToggle2FA}
-            loading={toggling}
-            className="!bg-[#D1D5DB]"
-            checkedChildren="ON"
-            unCheckedChildren="OFF"
-          />
+          {emailVerified ? (
+            <Tag color="green" className="!text-[9px] !m-0">Verified</Tag>
+          ) : (
+            <Button size="small" loading={sending} onClick={handleResendVerification} className="!text-[11px]">
+              Resend link
+            </Button>
+          )}
         </div>
-
-        <div className="mt-4 p-3 rounded-lg bg-[#F9FAFB] border border-[#F3F4F6]">
-          <div className="flex items-center gap-2 mb-2">
-            <MailOutlined className="text-[#009B3A] text-sm" />
-            <span className="text-[11px] font-semibold text-[#374151]">Email Verification Code</span>
-          </div>
-          <p className="text-[11px] text-[#6B7280] m-0 leading-relaxed">
-            When enabled, you'll receive a 6-digit verification code via email each time you sign in.
-            Enter the code to complete your login.
-          </p>
-        </div>
-
-        {otpEnabled && (
-          <div className="mt-3 p-3 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0]">
-            <div className="flex items-center gap-2">
-              <CheckCircleOutlined className="text-[#16A34A] text-sm" />
-              <span className="text-[11px] font-semibold text-[#16A34A]">2FA is active on your account</span>
-            </div>
-            <p className="text-[10px] text-[#6B7280] m-0 mt-1">
-              You'll be asked for a verification code every time you sign in from a new device or session.
-            </p>
-          </div>
-        )}
-
-        {!otpEnabled && (
-          <div className="mt-3 p-3 rounded-lg bg-[#FFFBEB] border border-[#FDE68A]">
-            <div className="flex items-center gap-2">
-              <InfoCircleOutlined className="text-[#D97706] text-sm" />
-              <span className="text-[11px] font-semibold text-[#92400E]">2FA is not enabled</span>
-            </div>
-            <p className="text-[10px] text-[#6B7280] m-0 mt-1">
-              Your account is protected by password only. Enable 2FA for enhanced security.
-            </p>
-          </div>
-        )}
       </Card>
 
       {/* Account Info */}
@@ -133,13 +131,13 @@ export default function SecurityTab() {
         <Descriptions size="small" column={1} bordered
           labelStyle={{ fontSize: 11, width: 140 }}
           contentStyle={{ fontSize: 11 }}>
-          <Descriptions.Item label="Email">{user?.email || '-'}</Descriptions.Item>
+          <Descriptions.Item label="Email">{profile?.email || user?.email || '-'}</Descriptions.Item>
           <Descriptions.Item label="User ID">
             <Tag className="!text-[9px] !font-mono">{user?.sub?.substring(0, 8)}...</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="2FA Status">
-            <Tag color={otpEnabled ? 'green' : 'default'} className="!text-[9px]">
-              {otpEnabled ? 'Enabled' : 'Disabled'}
+          <Descriptions.Item label="Email Verified">
+            <Tag color={emailVerified ? 'green' : 'default'} className="!text-[9px]">
+              {emailVerified ? 'Verified' : 'Unverified'}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Password">
@@ -157,15 +155,17 @@ export default function SecurityTab() {
         <h4 className="text-[13px] font-bold m-0 text-[#1A1F2E] mb-3">Security Tips</h4>
         <div className="flex flex-col gap-2">
           {[
-            { tip: 'Use a unique password that you don\'t use elsewhere', done: true },
-            { tip: 'Enable two-factor authentication for extra protection', done: otpEnabled },
-            { tip: 'Never share your verification codes with anyone', done: true },
+            { tip: "Use a unique password that you don't use elsewhere", done: true },
+            { tip: 'Verify your email address to secure account recovery', done: emailVerified },
+            { tip: 'Never share your password reset links with anyone', done: true },
             { tip: 'Contact your admin if you suspect unauthorized access', done: true },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-2 text-[11px]">
-              <CheckCircleOutlined
-                className={`text-sm ${item.done ? 'text-[#009B3A]' : 'text-[#D1D5DB]'}`}
-              />
+              {item.done ? (
+                <CheckCircleOutlined className="text-sm text-[#009B3A]" />
+              ) : (
+                <CloseCircleOutlined className="text-sm text-[#D1D5DB]" />
+              )}
               <span className={item.done ? 'text-[#374151]' : 'text-[#9CA3AF]'}>{item.tip}</span>
             </div>
           ))}

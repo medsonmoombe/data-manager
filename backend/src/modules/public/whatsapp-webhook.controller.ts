@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Headers, Get, Query, Res } from '@nestjs/common';
-import { Public } from 'nest-keycloak-connect';
+import { Public } from '../../common/decorators/public.decorator';
 import { WhatsAppBotService } from './whatsapp-bot.service';
 import { Response } from 'express';
 

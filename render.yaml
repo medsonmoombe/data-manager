@@ -36,14 +36,12 @@ services:
           name: omnicore-redis
           type: redis
           property: password
-      - key: KEYCLOAK_URL
-        sync: false
-      - key: KEYCLOAK_REALM
-        sync: false
-      - key: KEYCLOAK_CLIENT_ID
-        sync: false
-      - key: KEYCLOAK_CLIENT_SECRET
-        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 30d
       - key: MINIO_ENDPOINT
         sync: false
       - key: MINIO_PORT

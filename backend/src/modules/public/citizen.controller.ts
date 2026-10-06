@@ -2,7 +2,7 @@ import { Controller, Post, Get, Param, Body, Req, Headers, UnauthorizedException
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { OtpService } from './otp.service';
 import { EncryptionService } from '../../common/services/encryption.service';
-import { Public } from 'nest-keycloak-connect';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('public')
 export class CitizenController {

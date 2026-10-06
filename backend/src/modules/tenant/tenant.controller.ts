@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Param, Body, Req } from '@nestjs/common';
-import { Public } from 'nest-keycloak-connect';
+import { Public } from '../../common/decorators/public.decorator';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto, UpdateTenantDto } from './dto';
 import { BaseCrudController } from '../../common/base/base-crud.controller';

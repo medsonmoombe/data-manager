@@ -47,13 +47,14 @@ export class PermissionsGuard implements CanActivate {
     return true;
   }
 
-  private async getUserPermissions(keycloakUserId: string, request?: any): Promise<string[]> {
+  private async getUserPermissions(userId: string, request?: any): Promise<string[]> {
     if (request?.user?.isApiKey) {
       return request.user.permissions || [];
     }
 
-    const user = await this.prisma.user.findFirst({
-      where: { keycloakUserId },
+    // `user.sub` is the local User.id now that tokens are issued by us.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
       include: {
         userRoles: {
           include: { role: true },

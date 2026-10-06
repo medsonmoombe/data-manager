@@ -105,7 +105,7 @@ export default function SystemHealthPage() {
     { key: 'postgres', name: 'PostgreSQL', icon: <DatabaseOutlined />, status: getServiceStatus('postgres') },
     { key: 'redis', name: 'Redis', icon: <ThunderboltOutlined />, status: getServiceStatus('redis') },
     { key: 'minio', name: 'MinIO (Storage)', icon: <CloudServerOutlined />, status: getServiceStatus('minio') },
-    { key: 'keycloak', name: 'Keycloak (Auth)', icon: <KeyOutlined />, status: getServiceStatus('keycloak') },
+    { key: 'auth', name: 'Auth (JWT)', icon: <KeyOutlined />, status: getServiceStatus('auth') },
   ];
 
   const connectorHealth = {

@@ -6,9 +6,9 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { AuthGuard } from 'nest-keycloak-connect';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
-import { KeycloakModule } from './infrastructure/keycloak/keycloak.module';
+import { JwtModule } from './infrastructure/jwt/jwt.module';
+import { AuthCoreModule } from './modules/auth/auth-core.module';
 import { TenantModule } from './modules/tenant/tenant.module';
 import { HealthModule } from './modules/health/health.module';
 import { ConnectorModule } from './modules/connector/connector.module';
@@ -65,7 +65,8 @@ import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
       }),
     }),
     PrismaModule,
-    KeycloakModule,
+    JwtModule,
+    AuthCoreModule,
     TenantModule,
     HealthModule,
     ConnectorModule,
@@ -97,7 +98,6 @@ import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
     SettingsModule,
   ],
   providers: [
-    AuthGuard,
     {
       provide: APP_GUARD,
       useClass: ApiKeyRateLimitGuard,

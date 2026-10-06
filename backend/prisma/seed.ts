@@ -13,6 +13,11 @@ function randomDate(start: Date, end: Date) {
 async function main() {
   console.log('Starting database seeding...');
 
+  // Custom auth: seeded accounts sign in with this password (bcrypt-hashed, as
+  // the app does). Override DEFAULT_USER_PASSWORD in .env for anything shared.
+  const seedPassword = process.env.DEFAULT_USER_PASSWORD || 'Password123!';
+  const seedPasswordHash = await bcrypt.hash(seedPassword, 12);
+
   // ============================================
   // 1. ORGANIZATIONS
   // ============================================
@@ -123,7 +128,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'admin@omnicore.africa',
-        keycloakUserId: 'kc-admin-001',
+        passwordHash: seedPasswordHash,
         username: 'john.admin',
         firstName: 'John',
         lastName: 'Admin',
@@ -136,7 +141,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'orgadmin@omnicore.africa',
-        keycloakUserId: 'kc-orgadmin-001',
+        passwordHash: seedPasswordHash,
         username: 'sarah.manager',
         firstName: 'Sarah',
         lastName: 'Manager',
@@ -149,7 +154,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'pm@omnicore.africa',
-        keycloakUserId: 'kc-pm-001',
+        passwordHash: seedPasswordHash,
         username: 'michael.banda',
         firstName: 'Michael',
         lastName: 'Banda',
@@ -162,7 +167,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'user@omnicore.africa',
-        keycloakUserId: 'kc-user-001',
+        passwordHash: seedPasswordHash,
         username: 'jane.mewang',
         firstName: 'Jane',
         lastName: 'Mewang',
@@ -175,7 +180,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'lands.admin@gov.zm',
-        keycloakUserId: 'kc-lands-admin-001',
+        passwordHash: seedPasswordHash,
         username: 'peter.mbewa',
         firstName: 'Peter',
         lastName: 'Mbewa',
@@ -188,7 +193,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'surveyor@lands.gov.zm',
-        keycloakUserId: 'kc-surveyor-001',
+        passwordHash: seedPasswordHash,
         username: 'charles.phiri',
         firstName: 'Charles',
         lastName: 'Phiri',
@@ -200,7 +205,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'zesco.admin@zesco.co.zm',
-        keycloakUserId: 'kc-zesco-admin-001',
+        passwordHash: seedPasswordHash,
         username: 'mary.chilufya',
         firstName: 'Mary',
         lastName: 'Chilufya',
@@ -213,7 +218,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'technician@zesco.co.zm',
-        keycloakUserId: 'kc-technician-001',
+        passwordHash: seedPasswordHash,
         username: 'james.mwila',
         firstName: 'James',
         lastName: 'Mwila',
@@ -225,7 +230,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'agriculture.admin@gov.zm',
-        keycloakUserId: 'kc-agri-admin-001',
+        passwordHash: seedPasswordHash,
         username: 'grace.musonda',
         firstName: 'Grace',
         lastName: 'Musonda',
@@ -238,7 +243,7 @@ async function main() {
     prisma.user.create({
       data: {
         email: 'inactive@omnicore.africa',
-        keycloakUserId: 'kc-inactive-001',
+        passwordHash: seedPasswordHash,
         username: 'inactive.user',
         firstName: 'Inactive',
         lastName: 'User',

@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Delete, Param, Body, Req } from '@nestjs/common';
 import { InvitationService } from './invitation.service';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('invitations')
 export class InvitationController {
@@ -21,6 +22,14 @@ export class InvitationController {
     return this.invitationService.getPendingInvitations(orgId);
   }
 
+  /**
+   * Accept an invitation via the emailed link.
+   *
+   * PUBLIC: the caller is not signed in yet — this is what lets them set a
+   * password. It used to work by accident because Keycloak's guard ran in
+   * PERMISSIVE mode; now it is explicit.
+   */
+  @Public()
   @Post('accept')
   async acceptInvitation(@Body() dto: { token: string }) {
     return this.invitationService.acceptInvitation(dto.token);
