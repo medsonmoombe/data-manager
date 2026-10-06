@@ -1,0 +1,1107 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --------------------------------------------------------------
+// Core Platform
+// --------------------------------------------------------------
+
+model Organization {
+  id                  String    @id @default(uuid())
+  name                String
+  slug                String    @unique
+  domain              String?
+  logoUrl             String?   @map("logo_url")
+  primaryContactEmail String?   @map("primary_contact_email")
+  phone               String?
+  settings            Json      @default("{}")
+  subscriptionTier    String    @default("free") @map("subscription_tier")
+  isActive            Boolean   @default(true) @map("is_active")
+  maxApiKeys          Int       @default(10) @map("max_api_keys")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  users               User[]
+  departments         Department[]
+  roles               Role[]
+  auditLogs           AuditLog[]
+  accessPolicies      AccessPolicy[]
+  connectors          Connector[]
+  entityDefinitions   EntityDefinition[]
+  goldenRecords       GoldenRecord[]
+  formDefinitions     FormDefinition[]
+  autoLinkRules       AutoLinkRule[]
+  suggestions         Suggestion[]
+  webhooks            Webhook[]
+  validationRules     ValidationRule[]
+  workflowDefinitions WorkflowDefinition[]
+  notificationTemplates NotificationTemplate[]
+  notifications         Notification[]
+  notificationPreferences NotificationPreference[]
+  notificationChannels  NotificationChannel[]
+  dashboards            Dashboard[]
+  savedSearches         SavedSearch[]
+  activityEvents        ActivityEvent[]
+  activitySubscriptions ActivitySubscription[]
+  publishedTemplates    MarketplaceTemplate[]  @relation("PublishedTemplates")
+  templateInstallations TemplateInstallation[]
+              invitations           Invitation[]
+  apiKeys               ApiKey[]
+  duplicateScanJobs     DuplicateScanJob[]
+  teams                 Team[]
+  ipWhitelistEntries    IpWhitelist[]
+  userActivities        UserActivity[]
+  @@map("organizations")
+}
+
+model Department {
+  id                 String   @id @default(uuid())
+  organizationId     String   @map("org_id")
+  name               String
+  parentDepartmentId String?  @map("parent_department_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  children     Department[] @relation("DepartmentHierarchy")
+  users        User[]
+
+  @@map("departments")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  keycloakUserId String    @unique @map("keycloak_user_id")
+  username       String?   @unique
+  email          String
+  firstName      String?   @map("first_name")
+  lastName       String?   @map("last_name")
+  jobTitle       String?   @map("job_title")
+  departmentId   String?   @map("department_id")
+  avatarUrl      String?   @map("avatar_url")
+  phone          String?
+  timezone       String    @default("Africa/Lusaka")
+  locale         String    @default("en")
+  isActive       Boolean   @default(true) @map("is_active")
+  lastLoginAt    DateTime? @map("last_login_at")
+  lastActiveAt   DateTime? @map("last_active_at")
+  preferences    Json      @default("{}")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department   Department?  @relation(fields: [departmentId], references: [id])
+
+  userRoles       UserRole[]
+  userAttributes  UserAttribute[]
+  teams           TeamMember[]
+  createdTeams    Team[]
+  sentInvitations Invitation[]
+  userActivities  UserActivity[]
+
+  @@map("users")
+}
+
+// --------------------------------------------------------------
+// Team & User Management
+// --------------------------------------------------------------
+
+model Team {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  name           String
+  description    String?
+  avatarUrl      String?   @map("avatar_url")
+  createdBy      String?   @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        TeamMember[]
+  createdByUser  User?        @relation(fields: [createdBy], references: [id])
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String   @map("team_id")
+  userId    String   @map("user_id")
+  role      String   @default("member")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  invitedBy String?  @map("invited_by")
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model Invitation {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  email          String
+  teamIds        String[]  @map("team_ids")
+  role           String    @default("member")
+  invitedBy      String    @map("invited_by")
+  token          String    @unique
+  status         String    @default("pending")
+  expiresAt      DateTime  @map("expires_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  acceptedAt     DateTime? @map("accepted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter      User         @relation(fields: [invitedBy], references: [id])
+
+  @@index([email, status])
+  @@index([token])
+  @@map("invitations")
+}
+
+model UserActivity {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  userId         String    @map("user_id")
+  action         String
+  metadata       Json      @default("{}")
+  ipAddress      String?   @map("ip_address")
+  userAgent      String?   @map("user_agent")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, userId, createdAt])
+  @@map("user_activities")
+}
+
+model Role {
+  id             String  @id @default(uuid())
+  organizationId String  @map("org_id")
+  name           String
+  description    String?
+  isSystemRole   Boolean @default(false) @map("is_system_role")
+  permissions    Json    @default("[]")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userRoles    UserRole[]
+
+  @@unique([organizationId, name])
+  @@map("roles")
+}
+
+model UserRole {
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model UserAttribute {
+  id             String @id @default(uuid())
+  userId         String @map("user_id")
+  attributeKey   String @map("attribute_key")
+  attributeValue String @map("attribute_value")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, attributeKey])
+  @@map("user_attributes")
+}
+
+model AccessPolicy {
+  id                  String @id @default(uuid())
+  organizationId      String @map("org_id")
+  name                String
+  targetEntity        String @map("target_entity")
+  attributeConditions Json   @map("attribute_conditions")
+  effect              String @default("allow")
+  priority            Int    @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("access_policies")
+}
+
+// --------------------------------------------------------------
+// Immutable Audit Log
+// --------------------------------------------------------------
+
+model AuditLog {
+  id             BigInt   @id @default(autoincrement())
+  organizationId String   @map("org_id")
+  userId         String?  @map("user_id")
+  action         String
+  entityType     String   @map("entity_type")
+  entityId       String   @map("entity_id")
+  oldValues      Json?    @map("old_values")
+  newValues      Json?    @map("new_values")
+  ipAddress      String?  @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  occurredAt     DateTime @default(now()) @map("occurred_at")
+  prevHash       String?  @map("prev_hash")
+  currentHash    String?  @map("current_hash")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, occurredAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+// --------------------------------------------------------------
+// Connector Framework
+// --------------------------------------------------------------
+
+model Connector {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  name           String
+  connectorType  String    @map("connector_type") // 'csv', 'rest_api', 'mysql', 'nhima', etc.
+  configuration  Json      @default("{}") // connection details (encrypted at app level)
+  description    String?
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  jobs         ConnectorJob[]
+
+  @@map("connectors")
+}
+
+model ConnectorJob {
+  id                  String    @id @default(uuid())
+  connectorId         String    @map("connector_id")
+  name                String
+  schedule            String? // cron expression or null for manual
+  transformationRules Json      @default("[]") @map("transformation_rules") // field mappings
+  targetEntity        String    @map("target_entity") // entity_definition name
+  isActive            Boolean   @default(true) @map("is_active")
+  lastRunAt           DateTime? @map("last_run_at")
+  nextRunAt           DateTime? @map("next_run_at")
+
+  connector Connector      @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  runs      ConnectorRun[]
+
+  @@map("connector_jobs")
+}
+
+model ConnectorRun {
+  id               String    @id @default(uuid())
+  jobId            String    @map("job_id")
+  startedAt        DateTime  @default(now()) @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+  status           String    @default("pending") // 'pending','running','success','failed','partial'
+  recordsProcessed Int       @default(0) @map("records_processed")
+  recordsSucceeded Int       @default(0) @map("records_succeeded")
+  recordsFailed    Int       @default(0) @map("records_failed")
+  errorLog         Json?     @map("error_log")
+  rawDataRef       String?   @map("raw_data_ref") // MinIO path
+  startedBy        String?   @map("started_by")
+
+  job   ConnectorJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  items ConnectorRunItem[]
+
+  @@map("connector_runs")
+}
+
+model ConnectorRunItem {
+  id               String    @id @default(uuid())
+  runId            String    @map("run_id")
+  sourceIdentifier String?   @map("source_identifier")
+  rawData          Json      @default("{}") @map("raw_data")
+  status           String    @default("pending") // 'pending','processed','error'
+  errorMessage     String?   @map("error_message")
+  goldenRecordId   String?   @map("golden_record_id")
+  processedAt      DateTime? @map("processed_at")
+
+  run           ConnectorRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  sourceRecords SourceRecord[]
+
+  @@map("connector_run_items")
+}
+
+// --------------------------------------------------------------
+// Master Data Management
+// --------------------------------------------------------------
+
+model EntityDefinition {
+  id             String   @id @default(uuid())
+  organizationId String   @map("org_id")
+  name           String
+  description    String?
+  isSystem       Boolean  @default(false) @map("is_system")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  attributes    EntityAttribute[]
+  goldenRecords GoldenRecord[]
+  matchingRules MatchingRule[]
+
+  @@unique([organizationId, name])
+  @@map("entity_definitions")
+}
+
+model EntityAttribute {
+  id                 String  @id @default(uuid())
+  entityDefinitionId String  @map("entity_definition_id")
+  name               String
+  displayName        String? @map("display_name")
+  dataType           String  @map("data_type") // 'string','number','date','boolean','json'
+  isIdentifier       Boolean @default(false) @map("is_identifier")
+  isRequired         Boolean @default(false) @map("is_required")
+  validationRules    Json?   @map("validation_rules")
+  sortOrder          Int     @default(0) @map("sort_order")
+
+  entityDefinition EntityDefinition @relation(fields: [entityDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([entityDefinitionId, name])
+  @@map("entity_attributes")
+}
+
+model MatchingRule {
+  id                 String  @id @default(uuid())
+  entityDefinitionId String  @map("entity_definition_id")
+  name               String
+  ruleType           String  @map("rule_type") // 'exact','fuzzy'
+  fieldWeights       Json    @map("field_weights") // {"nrc":0.5,"first_name":0.3,"last_name":0.2}
+  threshold          Float   @default(0.85)
+  isActive           Boolean @default(true) @map("is_active")
+
+  entityDefinition EntityDefinition @relation(fields: [entityDefinitionId], references: [id], onDelete: Cascade)
+
+  @@map("matching_rules")
+}
+
+model GoldenRecord {
+  id                 String    @id @default(uuid())
+  entityDefinitionId String    @map("entity_definition_id")
+  organizationId     String    @map("org_id")
+  externalId         String?   @map("external_id")
+  hashedIdentifier   String?   @map("hashed_identifier") // SHA-256 hash of NRC for encrypted search
+  data               Json      @default("{}")
+  matchConfidence    Float     @default(0) @map("match_confidence")
+  status             String    @default("active") // 'active','merged','archived'
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by")
+  updatedBy          String?   @map("updated_by")
+  deletedAt          DateTime? @map("deleted_at")
+
+  entityDefinition EntityDefinition @relation(fields: [entityDefinitionId], references: [id])
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sourceRecords    SourceRecord[]
+  versions         RecordVersion[]
+
+  @@index([organizationId, entityDefinitionId])
+  @@index([hashedIdentifier])
+  @@map("golden_records")
+}
+
+model RecordVersion {
+  id             String   @id @default(uuid())
+  goldenRecordId String   @map("golden_record_id")
+  versionNumber  Int      @map("version_number")
+  dataSnapshot   Json     @map("data_snapshot")
+  changedFields  String[] @map("changed_fields")
+  updatedBy      String?  @map("updated_by")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+
+  goldenRecord GoldenRecord @relation(fields: [goldenRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([goldenRecordId, versionNumber])
+  @@map("record_versions")
+}
+
+model SourceRecord {
+  id                 String   @id @default(uuid())
+  goldenRecordId     String?  @map("golden_record_id")
+  connectorRunItemId String?  @map("connector_run_item_id")
+  entityDefinitionId String   @map("entity_definition_id")
+  sourceData         Json     @default("{}") @map("source_data")
+  sourceSystem       String   @map("source_system")
+  sourceId           String?  @map("source_id")
+  importDate         DateTime @default(now()) @map("import_date")
+  status             String   @default("pending") // 'pending','matched','rejected'
+
+  goldenRecord     GoldenRecord?     @relation(fields: [goldenRecordId], references: [id])
+  connectorRunItem ConnectorRunItem? @relation(fields: [connectorRunItemId], references: [id])
+
+  @@index([entityDefinitionId, status])
+  @@map("source_records")
+}
+
+model MergeHistory {
+  id                 String   @id @default(uuid())
+  entityDefinitionId String   @map("entity_definition_id")
+  survivingRecordId  String   @map("surviving_record_id")
+  mergedRecordId     String   @map("merged_record_id")
+  mergedBy           String?  @map("merged_by")
+  mergedAt           DateTime @default(now()) @map("merged_at")
+
+  @@map("merge_history")
+}
+
+model DuplicateScanJob {
+  id              String    @id @default(uuid())
+  organizationId  String    @map("org_id")
+  entityName      String    @map("entity_name")
+  status          String    @default("pending")
+  totalRecords    Int       @default(0) @map("total_records")
+  processedPairs  Int       @default(0) @map("processed_pairs")
+  totalPairs      Int       @default(0) @map("total_pairs")
+  duplicatesFound Int       @default(0) @map("duplicates_found")
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  errorMessage    String?   @map("error_message")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@map("duplicate_scan_jobs")
+}
+
+// --------------------------------------------------------------
+// Dynamic Form Builder (JSONB approach)
+// --------------------------------------------------------------
+
+model FormDefinition {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  name           String
+  description    String?
+  version        Int       @default(1)
+  status         String    @default("draft") // 'draft','published','retired'
+  formSchema     Json      @default("{}") // { fields: [{ name, type, required, label, options }], layout: {} }
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  submissions  FormSubmission[]
+
+  @@map("form_definitions")
+}
+
+model FormSubmission {
+  id               String    @id @default(uuid())
+  formDefinitionId String    @map("form_definition_id")
+  organizationId   String    @map("org_id")
+  data             Json      @default("{}") // All dynamic fields stored as JSONB
+  status           String    @default("completed") // 'completed','draft','archived'
+  submittedBy      String?   @map("submitted_by")
+  submittedAt      DateTime  @default(now()) @map("submitted_at")
+  ipAddress        String?   @map("ip_address")
+  geolocation      Json?
+  deletedAt        DateTime? @map("deleted_at")
+
+  formDefinition FormDefinition @relation(fields: [formDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([formDefinitionId, organizationId])
+  @@index([organizationId, submittedAt(sort: Desc)])
+  @@index([data], type: Gin) // GIN index for JSONB queries
+  @@map("form_submissions")
+}
+
+// --------------------------------------------------------------
+// Record Intelligence (360° Profiles)
+// --------------------------------------------------------------
+
+model RecordRelationship {
+  id               String   @id @default(uuid())
+  organizationId   String   @map("org_id")
+  sourceEntityType String   @map("source_entity_type") // 'golden_record', 'form_submission'
+  sourceRecordId   String   @map("source_record_id")
+  targetEntityType String   @map("target_entity_type")
+  targetRecordId   String   @map("target_record_id")
+  relationshipType String   @map("relationship_type") // 'spouse_of', 'employee_of', 'submitted_in'
+  metadata         Json     @default("{}")
+  confidence       Float    @default(1.0)
+  isInferred       Boolean  @default(false) @map("is_inferred")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([organizationId, sourceEntityType, sourceRecordId])
+  @@index([organizationId, targetEntityType, targetRecordId])
+  @@map("record_relationships")
+}
+
+model RecordTimelineEvent {
+  id             String   @id @default(uuid())
+  organizationId String   @map("org_id")
+  entityType     String   @map("entity_type")
+  recordId       String   @map("record_id")
+  eventType      String   @map("event_type") // 'record_created','field_updated','form_submitted','connector_imported','merged','relationship_added'
+  eventData      Json     @default("{}") @map("event_data")
+  actorUserId    String?  @map("actor_user_id")
+  occurredAt     DateTime @default(now()) @map("occurred_at")
+
+  @@index([organizationId, entityType, recordId, occurredAt(sort: Desc)])
+  @@map("record_timeline_events")
+}
+
+model EntityProfile {
+  entityType     String   @map("entity_type")
+  recordId       String   @map("record_id")
+  organizationId String   @map("org_id")
+  profileJson    Json     @default("{}") @map("profile_json") // Cached full profile
+  lastBuiltAt    DateTime @default(now()) @map("last_built_at")
+
+  @@id([entityType, recordId, organizationId])
+  @@map("entity_profiles")
+}
+
+// --------------------------------------------------------------
+// Auto-Link Rules & Suggestions
+// --------------------------------------------------------------
+
+model AutoLinkRule {
+  id               String   @id @default(uuid())
+  organizationId   String   @map("org_id")
+  name             String
+  description      String?
+  sourceEntityType String   @map("source_entity_type") // 'golden_record', 'form_submission'
+  targetEntityType String   @map("target_entity_type")
+  fieldMappings    Json     @map("field_mappings")
+  // [{ sourceField: "nrc", targetField: "nrc", matchType: "exact"|"fuzzy"|"contains" }]
+  relationshipType String   @map("relationship_type") // 'same_person', 'household_member', etc.
+  autoAcceptAbove  Float    @default(0.9) @map("auto_accept_above") // Confidence above this = auto-create
+  suggestAbove     Float    @default(0.4) @map("suggest_above") // Confidence above this = suggest
+  isActive         Boolean  @default(true) @map("is_active")
+  priority         Int      @default(0) // Higher runs first
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("auto_link_rules")
+}
+
+model Suggestion {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  suggestionType String    @map("suggestion_type") // 'relationship', 'merge', 'data_quality'
+  title          String
+  description    String?
+  entityTypeA    String?   @map("entity_type_a")
+  entityIdA      String?   @map("entity_id_a")
+  entityTypeB    String?   @map("entity_type_b")
+  entityIdB      String?   @map("entity_id_b")
+  proposedAction Json      @default("{}") @map("proposed_action")
+  // { action: "create_relationship", relationshipType: "spouse_of", confidence: 0.72 }
+  confidence     Float     @default(0)
+  status         String    @default("pending") // 'pending', 'accepted', 'rejected', 'dismissed'
+  resolvedBy     String?   @map("resolved_by")
+  resolvedAt     DateTime? @map("resolved_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([organizationId, suggestionType])
+  @@map("suggestions")
+}
+
+// --------------------------------------------------------------
+// Webhooks
+// --------------------------------------------------------------
+
+model Webhook {
+  id             String   @id @default(uuid())
+  organizationId String   @map("org_id")
+  name           String
+  url            String
+  eventTypes     String[] @map("event_types")
+  secretHash     String?  @map("secret_hash")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries   WebhookDelivery[]
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id             String   @id @default(uuid())
+  webhookId      String   @map("webhook_id")
+  eventPayload   Json     @default("{}") @map("event_payload")
+  responseStatus Int?     @map("response_status")
+  responseBody   String?  @map("response_body")
+  success        Boolean  @default(false)
+  deliveredAt    DateTime @default(now()) @map("delivered_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, deliveredAt(sort: Desc)])
+  @@map("webhook_deliveries")
+}
+
+model ValidationRule {
+  id             String   @id @default(uuid())
+  organizationId String   @map("org_id")
+  name           String
+  description    String?
+  targetEntity   String   @map("target_entity") // entity name
+  targetField    String   @map("target_field") // field to validate
+  ruleType       String   @map("rule_type") // 'required','regex','range','enum','custom'
+  ruleConfig     Json     @map("rule_config")
+  // { regex: "\\d{6}/\\d{2}/\\d{1}" } or { min: 0, max: 120 } or { values: ["maize","soya"] }
+  errorMessage   String   @map("error_message")
+  severity       String   @default("error") // 'error','warning'
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  results      ValidationResult[]
+
+  @@map("validation_rules")
+}
+
+model ValidationResult {
+  id             String    @id @default(uuid())
+  ruleId         String    @map("rule_id")
+  goldenRecordId String?   @map("golden_record_id")
+  submissionId   String?   @map("submission_id")
+  fieldName      String    @map("field_name")
+  currentValue   String?   @map("current_value")
+  status         String    @default("open") // 'open','fixed','ignored'
+  createdAt      DateTime  @default(now()) @map("created_at")
+  resolvedAt     DateTime? @map("resolved_at")
+
+  rule ValidationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId, status])
+  @@map("validation_results")
+}
+
+// --------------------------------------------------------------
+// Workflow Engine
+// --------------------------------------------------------------
+
+// --------------------------------------------------------------
+// Workflow Engine
+// --------------------------------------------------------------
+
+model WorkflowDefinition {
+  id              String   @id @default(uuid())
+  organizationId  String   @map("org_id")
+  name            String
+  description     String?
+  category        String?
+  triggerType     String   @map("trigger_type")
+  triggerConfig   Json     @default("{}")
+  steps           Json     @default("[]")
+  failureStrategy String   @default("stop") @map("failure_strategy")
+  isTemplate      Boolean  @default(false) @map("is_template")
+  tags            String[] @default([])
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  instances    WorkflowInstance[]
+
+  @@index([organizationId, category])
+  @@index([organizationId, triggerType])
+  @@map("workflow_definitions")
+}
+
+model WorkflowInstance {
+  id             String    @id @default(uuid())
+  definitionId   String    @map("definition_id")
+  organizationId String    @map("org_id")
+  status         String    @default("running")
+  triggerData    Json      @default("{}")
+  variables      Json      @default("{}")
+  executionGraph Json      @default("{}")
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+  errorMessage   String?
+  errorStepId    String?
+
+  definition    WorkflowDefinition     @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  tasks         WorkflowTask[]
+  compensations WorkflowCompensation[]
+
+  @@index([organizationId, status])
+  @@index([definitionId, startedAt(sort: Desc)])
+  @@map("workflow_instances")
+}
+
+model WorkflowTask {
+  id           String    @id @default(uuid())
+  instanceId   String    @map("instance_id")
+  stepId       String?   @map("step_id")
+  assigneeId   String?
+  assigneeRole String?
+  taskType     String    @map("task_type")
+  taskName     String    @map("task_name")
+  taskConfig   Json      @default("{}")
+  status       String    @default("pending")
+  priority     Int       @default(0)
+  assignedAt   DateTime?
+  dueAt        DateTime?
+  completedAt  DateTime?
+  completedBy  String?
+  result       Json?
+  errorMessage String?
+  retryCount   Int       @default(0) @map("retry_count")
+  maxRetries   Int       @default(3) @map("max_retries")
+  createdAt    DateTime  @default(now())
+
+  instance WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId, status])
+  @@index([assigneeId, status])
+  @@index([dueAt])
+  @@map("workflow_tasks")
+}
+
+model WorkflowCompensation {
+  id           String    @id @default(uuid())
+  instanceId   String    @map("instance_id")
+  stepId       String    @map("step_id")
+  action       Json      @default("{}")
+  status       String    @default("pending")
+  executedAt   DateTime? @map("executed_at")
+  errorMessage String?
+
+  instance WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_compensations")
+}
+
+// --------------------------------------------------------------
+// Notification Gateway
+// --------------------------------------------------------------
+
+model NotificationTemplate {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  name           String
+  channel        String                         // 'email','sms','whatsapp','in_app'
+  subject        String?                        // Email subject
+  bodyTemplate   String    @map("body_template")  // Handlebars-style: "Hello {{first_name}}"
+  variables      Json      @default("[]")       // Expected variables: [{ name: "first_name", required: true }]
+  category       String    @default("general")  // 'approval','alert','reminder','welcome'
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  notifications  Notification[]
+
+  @@map("notification_templates")
+}
+
+model Notification {
+  id               String    @id @default(uuid())
+  organizationId   String    @map("org_id")
+  templateId       String?   @map("template_id")
+  channel          String                         // 'email','sms','whatsapp','in_app'
+  recipient        String                        // Email, phone number, or user ID
+  recipientName    String?   @map("recipient_name")
+  subject          String?
+  body             String
+  params           Json      @default("{}")      // Variables used to render template
+  priority         Int       @default(0)
+  status           String    @default("pending")  // 'pending','queued','sent','delivered','read','failed'
+  provider         String?                        // 'twilio','whatsapp_api','smtp','baileys'
+  providerMessageId String?  @map("provider_message_id")
+  retryCount       Int       @default(0) @map("retry_count")
+  maxRetries       Int       @default(3) @map("max_retries")
+  errorMessage     String?   @map("error_message")
+  scheduledFor     DateTime? @map("scheduled_for")
+  sentAt           DateTime? @map("sent_at")
+  deliveredAt      DateTime? @map("delivered_at")
+  readAt           DateTime? @map("read_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template         NotificationTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([organizationId, status])
+  @@index([organizationId, channel, status])
+  @@index([scheduledFor])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id             String  @id @default(uuid())
+  organizationId String  @map("org_id")
+  userId         String  @map("user_id")
+  channel        String                       // 'email','sms','whatsapp','in_app'
+  category       String                       // 'approval','alert','reminder','welcome','all'
+  isEnabled      Boolean @default(true) @map("is_enabled")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, channel, category])
+  @@map("notification_preferences")
+}
+
+model NotificationChannel {
+  id             String   @id @default(uuid())
+  organizationId String   @map("org_id")
+  channel        String                        // 'email','sms','whatsapp'
+  provider       String                        // 'smtp','twilio','whatsapp_api','baileys'
+  config         Json     @default("{}")       // SMTP credentials, API keys, webhook URLs
+  isActive       Boolean  @default(true) @map("is_active")
+  isDefault      Boolean  @default(false) @map("is_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("notification_channels")
+}
+
+// --------------------------------------------------------------
+// Dashboards & Reporting
+// --------------------------------------------------------------
+
+model Dashboard {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  name           String
+  description    String?
+  layout         Json      @default("{}")       // Grid layout: [{ x, y, w, h, widgetId }]
+  isDefault      Boolean   @default(false) @map("is_default")
+  isPublic       Boolean   @default(false) @map("is_public")   // Viewable by all org users
+  createdBy      String?   @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  widgets        DashboardWidget[]
+
+  @@map("dashboards")
+}
+
+model DashboardWidget {
+  id             String   @id @default(uuid())
+  dashboardId    String   @map("dashboard_id")
+  name           String
+  widgetType     String   @map("widget_type")   
+  // 'number','bar_chart','line_chart','pie_chart','table','map','list','funnel','gauge'
+  dataSource     String   @map("data_source")   
+  // 'golden_records','form_submissions','workflows','suggestions','notifications'
+  config         Json     @default("{}")        
+  // { entityName, field, filters, aggregation, groupBy, sort, limit }
+  position       Json     @default("{}")        // { x, y, w, h }
+  refreshSeconds Int      @default(0) @map("refresh_seconds")  // 0 = no auto-refresh
+  alertThresholds Json    @default("[]") @map("alert_thresholds")
+  lastAlertedAt  DateTime? @map("last_alerted_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  dashboard      Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@map("dashboard_widgets")
+}
+
+model SavedSearch {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  name           String
+  description    String?
+  entityName     String    @map("entity_name")
+  query          Json      @default("{}")       // Search conditions (same format as advanced search)
+  sortField      String?   @map("sort_field")
+  sortDirection  String?   @default("desc") @map("sort_direction")
+  isPublic       Boolean   @default(false) @map("is_public")
+  createdBy      String?   @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("saved_searches")
+}
+
+// --------------------------------------------------------------
+// Activity Feed & Real-Time
+// --------------------------------------------------------------
+
+model ActivityEvent {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  eventType      String    @map("event_type")
+  // 'record_created','record_updated','form_submitted','workflow_started',
+  // 'workflow_completed','task_assigned','task_completed','suggestion_created',
+  // 'suggestion_resolved','relationship_created','validation_issue','alert_triggered',
+  // 'connector_run','export_completed','report_generated'
+  entityType     String?   @map("entity_type")
+  entityId       String?   @map("entity_id")
+  entityName     String?   @map("entity_name")    // Human-readable: "John Phiri", "Farm Inspection #45"
+  action         String                        // Past-tense: "created", "updated", "submitted"
+  summary        String                        // Human-readable: "John Phiri created a new record"
+  details        Json      @default("{}")      // Additional context
+  actorUserId    String?   @map("actor_user_id")
+  actorName      String?   @map("actor_name")
+  severity       String    @default("info")    // 'info','success','warning','error','critical'
+  isRead         Boolean   @default(false) @map("is_read")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([organizationId, eventType, createdAt(sort: Desc)])
+  @@index([organizationId, actorUserId, createdAt(sort: Desc)])
+  @@index([organizationId, isRead, createdAt(sort: Desc)])
+  @@map("activity_events")
+}
+
+model ActivitySubscription {
+  id             String   @id @default(uuid())
+  organizationId String   @map("org_id")
+  userId         String   @map("user_id")
+  eventTypes     String[] @map("event_types")   // Which events to subscribe to. Empty = all.
+  channels       String[] @default(["in_app"])  // 'in_app','email','push'
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("activity_subscriptions")
+}
+
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  statusCode   Int      @map("status_code")
+  responseBody Json     @map("response_body")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("idempotency_records")
+}
+
+model MarketplaceTemplate {
+  id             String   @id @default(uuid())
+  name           String
+  description    String
+  category       String                        // 'government','ngo','corporate','health','agriculture','education'
+  icon           String   @default("template") // Icon identifier
+  version        String   @default("1.0.0")
+  
+  // What this template includes (preview for users)
+  includes       Json     @default("[]")
+  // [{ type: "entity", name: "beneficiary", fields: [...] }, ...]
+  
+  // The actual installation payload
+  installPayload Json     @default("{}")
+  // Complete configuration for entities, forms, workflows, dashboards, rules
+  
+  isPublished    Boolean  @default(false)
+  isOfficial     Boolean  @default(false)      // Official OmniCore templates
+  publisherOrgId String?  @map("publisher_org_id")
+  downloads      Int      @default(0)
+  rating         Float    @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  installations  TemplateInstallation[]
+ publisher      Organization? @relation("PublishedTemplates", fields: [publisherOrgId], references: [id])
+
+  @@map("marketplace_templates")
+}
+
+model TemplateInstallation {
+  id             String   @id @default(uuid())
+  templateId     String   @map("template_id")
+  organizationId String   @map("org_id")
+  
+  // Track what was created
+  installedEntities   Json @default("[]") @map("installed_entities")     // [{ name, id }]
+  installedForms      Json @default("[]") @map("installed_forms")        // [{ name, id }]
+  installedWorkflows  Json @default("[]") @map("installed_workflows")    // [{ name, id }]
+  installedDashboards Json @default("[]") @map("installed_dashboards")   // [{ name, id }]
+  installedRules      Json @default("[]") @map("installed_rules")        // [{ name, id }]
+  
+  // Customizations made by tenant
+  customizations      Json @default("{}") @map("customizations")
+  // { addedFields: [...], modifiedWorkflows: [...], customDashboards: [...] }
+  
+  status         String   @default("active")   // 'active','modified','uninstalled'
+  installedBy    String?  @map("installed_by")
+  installedAt    DateTime @default(now()) @map("installed_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  template       MarketplaceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, templateId])
+  @@map("template_installations")
+}
+
+model ApiKey {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  name           String
+  keyPrefix      String    @map("key_prefix")
+  keyHash        String    @map("key_hash")
+  scopes         String[]
+  expiresAt      DateTime? @map("expires_at")
+  maxRequests    Int?      @map("max_requests")
+  requestCount   Int       @default(0) @map("request_count")
+  lastUsedAt     DateTime? @map("last_used_at")
+  isActive       Boolean   @default(true) @map("is_active")
+  createdBy      String?   @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, keyHash])
+  @@map("api_keys")
+}
+
+model IpWhitelist {
+  id             String    @id @default(uuid())
+  organizationId String    @map("org_id")
+  ipAddress      String    @map("ip_address")
+  cidr           String?
+  description    String?
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  createdBy      String    @map("created_by")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, ipAddress])
+  @@map("ip_whitelist")
+}
+
+model ApiKeyUsageLog {
+  id             String    @id @default(uuid())
+  apiKeyId       String    @map("api_key_id")
+  organizationId String    @map("org_id")
+  endpoint       String
+  method         String
+  statusCode     Int       @map("status_code")
+  ipAddress      String?   @map("ip_address")
+  userAgent      String?   @map("user_agent")
+  responseTimeMs Int?      @map("response_time_ms")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([apiKeyId, createdAt(sort: Desc)])
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@map("api_key_usage_logs")
+}
