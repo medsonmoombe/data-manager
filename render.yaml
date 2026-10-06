@@ -1,4 +1,10 @@
 services:
+  - type: redis
+    name: omnicore-redis
+    region: oregon
+    plan: free
+    ipAllowList: []
+
   - type: web
     name: omnicore-backend
     runtime: node
@@ -16,11 +22,20 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: REDIS_HOST
-        sync: false
+        fromService:
+          name: omnicore-redis
+          type: redis
+          property: host
       - key: REDIS_PORT
-        value: 6379
+        fromService:
+          name: omnicore-redis
+          type: redis
+          property: port
       - key: REDIS_PASSWORD
-        sync: false
+        fromService:
+          name: omnicore-redis
+          type: redis
+          property: password
       - key: KEYCLOAK_URL
         sync: false
       - key: KEYCLOAK_REALM
