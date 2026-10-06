@@ -7,6 +7,7 @@ import {
   FiBarChart2, FiSearch, FiMessageCircle,
 } from 'react-icons/fi';
 import api from '../../api/axios';
+import { useAuthStore } from '../../stores/auth.store';
 import { showApiErrors } from '../../utils/api-errors';
 
 const features = [
@@ -33,6 +34,7 @@ export default function RegisterPage() {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -59,8 +61,15 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
       });
-      setSuccess(true);
-      message.success('Organization registered! Check your email to verify your account.');
+      // Auto-login after registration
+      const loginRes = await api.post('/auth/api/login', {
+        username: form.email,
+        password: form.password,
+      }) as any;
+      const session = loginRes.data;
+      setAuth(session.accessToken, session.refreshToken, session.user);
+      message.success('Organization created! Welcome to OmniCore Africa.');
+      navigate('/dashboard');
     } catch (err: any) {
       showApiErrors(err);
     } finally {

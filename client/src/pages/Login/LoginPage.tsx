@@ -52,7 +52,7 @@ export default function LoginPage() {
         return;
       }
 
-      navigate('/org-select');
+      navigate('/dashboard');
     } catch (err: any) {
       const msg = err?.response?.data?.message || err.message || 'Invalid credentials.';
       message.error(msg);
