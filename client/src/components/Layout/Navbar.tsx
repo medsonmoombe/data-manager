@@ -19,7 +19,6 @@ const ROUTE_LABELS: Record<string, string> = {
   '/quality': 'Data Quality',
   '/notifications': 'Notifications',
   '/team': 'Team',
-  '/integrations': 'Integrations',
   '/intelligence': 'Intelligence',
 };
 

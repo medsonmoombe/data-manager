@@ -66,11 +66,11 @@ export default function SettingsPage() {
         usersApi.getAvailablePermissions().catch(() => ({ permissions: [] })),
       ]);
 
-      setRoles(rolesRes?.data || rolesRes || []);
-      setChannels(channelsRes?.data || channelsRes || []);
-      setPreferences(prefRes?.data || prefRes || []);
-      setSupportedTypes((typesRes?.data || typesRes)?.types || []);
-      setAllPermissions((permsRes?.data || permsRes)?.permissions || []);
+      setRoles((rolesRes as any)?.data || rolesRes || []);
+      setChannels((channelsRes as any)?.data || channelsRes || []);
+      setPreferences((prefRes as any)?.data || prefRes || []);
+      setSupportedTypes(((typesRes as any)?.data || typesRes as any)?.types || []);
+      setAllPermissions(((permsRes as any)?.data || permsRes as any)?.permissions || []);
       setState('success');
     } catch (err) {
       console.error(err);

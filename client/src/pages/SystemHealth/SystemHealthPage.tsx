@@ -10,6 +10,7 @@ import {
   ThunderboltOutlined, LinkOutlined,
 } from '@ant-design/icons';
 import api from '../../api/axios';
+import PageHeader from '../../components/PageHeader';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,

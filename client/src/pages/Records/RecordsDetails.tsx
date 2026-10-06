@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Tag, Button, Space, Spin, Typography, Timeline, Table, Tabs, Image } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, ReloadOutlined, FileOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons';
-import { formatFileSize, isImage, FileValue } from '../../components/FileUploadField/FileUploadField';
+import { formatFileSize, isImage } from '../../components/FileUploadField/FileUploadField';
+import type { FileValue } from '../../components/FileUploadField/FileUploadField';
 import api from '../../api/axios';
 
 const { Text } = Typography;
