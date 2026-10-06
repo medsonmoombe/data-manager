@@ -17,12 +17,22 @@ async function bootstrap() {
 
   // Security
   app.use(helmet());
+  const allowedOrigins = [
+    'http://localhost:5173',
+    process.env.FRONTEND_URL?.replace(/\/$/, ''),
+  ].filter(Boolean) as string[];
+
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      process.env.FRONTEND_URL || '',
-    ].filter(Boolean),
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.some((o) => origin.startsWith(o))) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
   app.use(compression());
 
