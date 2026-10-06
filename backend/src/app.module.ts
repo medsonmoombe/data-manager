@@ -55,14 +55,20 @@ import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => ({
-        store: redisStore,
-        host: process.env.REDIS_HOST ?? 'localhost',
-        port: parseInt(process.env.REDIS_PORT ?? '6379'),
-        password: process.env.REDIS_PASSWORD,
-        tls: process.env.REDIS_HOST !== 'localhost' ? {} : undefined,
-        ttl: 60,
-      }),
+      useFactory: async () => {
+        if (process.env.REDIS_HOST) {
+          return {
+            store: redisStore,
+            host: process.env.REDIS_HOST,
+            port: parseInt(process.env.REDIS_PORT ?? '6379'),
+            password: process.env.REDIS_PASSWORD,
+            tls: process.env.REDIS_HOST !== 'localhost' ? {} : undefined,
+            ttl: 60,
+          };
+        }
+        // No Redis configured — fall back to in-memory cache
+        return { ttl: 60 };
+      },
     }),
     PrismaModule,
     JwtModule,

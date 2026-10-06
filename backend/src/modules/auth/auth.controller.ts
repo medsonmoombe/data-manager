@@ -11,8 +11,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { AuthService } from './auth.service';
-import { AuthTokenService } from './services/auth-token.service';
-import { MailService } from './services/mail.service';
 import { InvitationService } from '../invitation/invitation.service';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -26,8 +24,6 @@ export class AuthController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auth: AuthService,
-    private readonly authTokens: AuthTokenService,
-    private readonly mail: MailService,
     private readonly invitationService: InvitationService,
   ) {}
 
@@ -201,22 +197,6 @@ export class AuthController {
 
     this.logger.log(`Organization created: ${org.name} (${org.id})`);
 
-    // ============================================================
-    // STEP 4: SEND VERIFICATION EMAIL (NON-CRITICAL)
-    // ============================================================
-    let emailSent = false;
-    try {
-      const admin = await this.auth.getByEmail(email);
-      if (admin) {
-        const token = await this.authTokens.createVerifyToken(admin.id, admin.email);
-        const result = await this.mail.sendVerificationEmail(admin.email, token);
-        emailSent = result.success;
-      }
-    } catch (error) {
-      // The account exists and can sign in; verification can be resent later.
-      this.logger.warn('Failed to send verification email:', getErrorMessage(error));
-    }
-
     return {
       success: true,
       message: 'Organization registered successfully!',
@@ -228,7 +208,7 @@ export class AuthController {
         organizationCreated: true,
         userCreated: true,
         rolesSeeded: true,
-        emailSent,
+        emailSent: false,
       },
     };
   }

@@ -58,25 +58,30 @@ export class AuthTokenService {
   ): Promise<string> {
     const token = crypto.randomBytes(32).toString('hex');
     const record: TokenRecord = { userId, email, createdAt: Date.now() };
-    await this.cache.set(`${prefix}:${token}`, record, ttlMs);
+    try {
+      await this.cache.set(`${prefix}:${token}`, record, ttlMs);
+    } catch (e) {
+      this.logger.warn(`Cache set failed (${prefix}): ${e}`);
+    }
     return token;
   }
 
   private async peek(prefix: string, token: string): Promise<TokenRecord | null> {
     if (!token) return null;
-    const record = await this.cache.get<TokenRecord>(`${prefix}:${token}`);
-    return record?.userId ? record : null;
+    try {
+      const record = await this.cache.get<TokenRecord>(`${prefix}:${token}`);
+      return record?.userId ? record : null;
+    } catch { return null; }
   }
 
   private async consume(prefix: string, token: string): Promise<TokenRecord | null> {
     if (!token) return null;
-
     const key = `${prefix}:${token}`;
-    const record = await this.cache.get<TokenRecord>(key);
-    if (!record?.userId) return null;
-
-    // Single use: delete before returning.
-    await this.cache.del(key);
-    return record;
+    try {
+      const record = await this.cache.get<TokenRecord>(key);
+      if (!record?.userId) return null;
+      await this.cache.del(key);
+      return record;
+    } catch { return null; }
   }
 }
