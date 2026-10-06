@@ -15,14 +15,18 @@ import { ApiKeyUsageInterceptor } from './common/interceptors/api-key-usage.inte
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Security
-  app.use(helmet());
+  // CORS must be enabled before helmet
   app.enableCors({
     origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'x-org-id'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
+
+  // Security — disable crossOriginResourcePolicy so CORS headers are not overridden
+  app.use(helmet({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false }));
   app.use(compression());
 
   // Global pipes, filters, interceptors
