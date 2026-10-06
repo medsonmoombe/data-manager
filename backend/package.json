@@ -64,7 +64,7 @@
     "ioredis": "^5.11.1",
     "keycloak-connect": "^26.1.1",
     "minio": "^8.0.7",
-    "nest-keycloak-connect": "^1.10.1",
+    "nest-keycloak-connect": "^2.0.0-alpha.3",
     "nest-winston": "^1.10.2",
     "nodemailer": "^8.0.11",
     "passport": "^0.7.0",
