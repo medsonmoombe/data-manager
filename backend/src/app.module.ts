@@ -60,6 +60,7 @@ import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
         host: process.env.REDIS_HOST ?? 'localhost',
         port: parseInt(process.env.REDIS_PORT ?? '6379'),
         password: process.env.REDIS_PASSWORD,
+        tls: process.env.REDIS_HOST !== 'localhost' ? {} : undefined,
         ttl: 60,
       }),
     }),
